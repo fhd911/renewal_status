@@ -1,0 +1,194 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>إدارة بيانات الاستعلام</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'inquiry/style.css' %}">
+</head>
+<body>
+  <main class="admin-page">
+    <header class="admin-header">
+      <div>
+        <p class="agency">الإدارة العامة للتعليم بمنطقة عسير</p>
+        <h1>إدارة بيانات الاستعلام</h1>
+        <p class="subtitle">إضافة وتعديل وحذف بيانات حالة التكليف المنشورة للمستفيدين.</p>
+      </div>
+
+      <div class="admin-actions">
+        <a class="secondary-btn" href="{% url 'inquiry:home' %}">صفحة الاستعلام</a>
+        <a class="secondary-btn" href="{% url 'inquiry:quick_inquiry' %}">استعلام إداري سريع</a>
+        <a class="secondary-btn" href="{% url 'inquiry:inquiry_settings' %}">إتاحة الاستعلام</a>
+        <a class="secondary-btn" href="{% url 'inquiry:inquiry_logs' %}">سجل الاستعلامات</a>
+        <a class="secondary-btn" href="{% url 'inquiry:import_excel' %}">استيراد Excel</a>
+        <a class="primary-btn" href="{% url 'inquiry:record_create' %}">إضافة مستفيد</a>
+      </div>
+    </header>
+
+    {% if messages %}
+      <section class="admin-messages">
+        {% for message in messages %}
+          <div class="message-item {% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</div>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    <section class="availability-strip {% if inquiry_settings.is_available %}open{% else %}closed{% endif %}">
+      <div>
+        <span>حالة الاستعلام للمستفيدين</span>
+        <strong>{% if inquiry_settings.is_available %}متاح الآن{% else %}مغلق حاليًا{% endif %}</strong>
+        <small>{{ inquiry_settings.availability_reason }}</small>
+      </div>
+      <a class="secondary-btn" href="{% url 'inquiry:inquiry_settings' %}">إدارة الإتاحة</a>
+    </section>
+
+    <section class="stats-grid main-stats">
+      <div class="stat-card"><span>إجمالي السجلات</span><strong>{{ stats.total }}</strong></div>
+      <div class="stat-card"><span>منشور</span><strong>{{ stats.published }}</strong></div>
+      <div class="stat-card success"><span>تم التجديد</span><strong>{{ stats.renewed }}</strong></div>
+      <div class="stat-card danger"><span>لم يتم التجديد</span><strong>{{ stats.not_renewed }}</strong></div>
+      <div class="stat-card warning"><span>مدة محددة</span><strong>{{ stats.limited }}</strong></div>
+      <div class="stat-card warning"><span>تحت الإجراء</span><strong>{{ stats.pending }}</strong></div>
+    </section>
+
+    <section class="category-strip">
+      <a class="category-card {% if category == 'manager' %}active{% endif %}" href="?category=manager">
+        <span>مدير مدرسة</span><strong>{{ stats.manager }}</strong>
+      </a>
+      <a class="category-card {% if category == 'deputy' %}active{% endif %}" href="?category=deputy">
+        <span>وكيل مدرسة</span><strong>{{ stats.deputy }}</strong>
+      </a>
+      <a class="category-card {% if category == 'counselor' %}active{% endif %}" href="?category=counselor">
+        <span>موجه طلابي</span><strong>{{ stats.counselor }}</strong>
+      </a>
+      <a class="category-card {% if category == 'activity_leader' %}active{% endif %}" href="?category=activity_leader">
+        <span>رائد نشاط</span><strong>{{ stats.activity_leader }}</strong>
+      </a>
+    </section>
+
+    <section class="admin-card">
+      <div class="section-head compact">
+        <div>
+          <h2>تفصيل الفئات حسب الحالة</h2>
+          <p>قراءة تنفيذية مختصرة لأعداد كل فئة حسب حالة التجديد.</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="admin-table summary-table">
+          <thead>
+            <tr>
+              <th>الفئة</th>
+              <th>الإجمالي</th>
+              <th>تم التجديد</th>
+              <th>لم يتم التجديد</th>
+              <th>مدة محددة</th>
+              <th>تحت الإجراء</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in category_rows %}
+              <tr>
+                <td><a class="table-link" href="?category={{ row.key }}">{{ row.label }}</a></td>
+                <td>{{ row.total }}</td>
+                <td class="success-text">{{ row.renewed }}</td>
+                <td class="danger-text">{{ row.not_renewed }}</td>
+                <td class="warning-text">{{ row.limited }}</td>
+                <td class="warning-text">{{ row.pending }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="admin-card">
+      <form method="get" class="admin-filter">
+        <input name="q" value="{{ query }}" placeholder="بحث بالسجل المدني أو الاسم أو المدرسة أو القطاع">
+        <select name="category">
+          <option value="">جميع الفئات</option>
+          <option value="manager" {% if category == "manager" %}selected{% endif %}>مدير مدرسة</option>
+          <option value="deputy" {% if category == "deputy" %}selected{% endif %}>وكيل مدرسة</option>
+          <option value="counselor" {% if category == "counselor" %}selected{% endif %}>موجه طلابي</option>
+          <option value="activity_leader" {% if category == "activity_leader" %}selected{% endif %}>رائد نشاط</option>
+          <option value="unknown" {% if category == "unknown" %}selected{% endif %}>غير متوفر</option>
+        </select>
+        <select name="status">
+          <option value="">جميع الحالات</option>
+          <option value="renewed" {% if status == "renewed" %}selected{% endif %}>تم التجديد</option>
+          <option value="not_renewed" {% if status == "not_renewed" %}selected{% endif %}>لم يتم التجديد</option>
+          <option value="limited" {% if status == "limited" %}selected{% endif %}>تم التجديد لمدة محددة</option>
+          <option value="pending" {% if status == "pending" %}selected{% endif %}>تحت الإجراء</option>
+        </select>
+        <button type="submit">بحث</button>
+        {% if query or status or category %}
+          <a class="clear-filter" href="{% url 'inquiry:manage_records' %}">مسح</a>
+        {% endif %}
+      </form>
+
+      {% if category_label %}
+        <div class="filter-note">النتائج الحالية مفلترة حسب فئة: <strong>{{ category_label }}</strong></div>
+      {% endif %}
+
+      <div class="table-wrap">
+        <table class="admin-table records-table clean-records-table">
+          <thead>
+            <tr>
+              <th>السجل المدني</th>
+              <th>الاسم</th>
+              <th>الفئة</th>
+              <th>المدرسة</th>
+              <th>القطاع</th>
+              <th>الحالة</th>
+              <th>النشر</th>
+              <th>إجراء</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for record in page_obj %}
+              <tr>
+                <td class="ltr">{{ record.national_id }}</td>
+                <td>{{ record.full_name }}</td>
+                <td>{{ record.category|default:"-" }}</td>
+                <td>{{ record.school_name|default:"-" }}</td>
+                <td>{{ record.sector|default:"-" }}</td>
+                <td><span class="mini-status status-{{ record.status_key|default:'info' }}">{{ record.status_label }}</span></td>
+                <td>{% if record.is_published %}منشور{% else %}مخفي{% endif %}</td>
+                <td>
+                  <div class="row-actions">
+                    <a href="{% url 'inquiry:record_update' record.pk %}">تعديل</a>
+                    <form method="post" action="{% url 'inquiry:record_delete' record.pk %}" onsubmit="return confirm('هل أنت متأكد من حذف هذا السجل؟');">
+                      {% csrf_token %}
+                      <button type="submit" class="delete-link">حذف</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="8" class="empty-row">لا توجد سجلات مطابقة.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="pagination">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}&status={{ status }}&category={{ category }}">السابق</a>
+          {% endif %}
+          <span>صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&q={{ query }}&status={{ status }}&category={{ category }}">التالي</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,66 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'inquiry/style.css' %}">
+</head>
+<body>
+  <main class="admin-page edit-page">
+    <header class="edit-header">
+      <div class="edit-title">
+        <p class="agency">الإدارة العامة للتعليم بمنطقة عسير</p>
+        <h1>{{ title }}</h1>
+        <p class="subtitle">تحديث بيانات المستفيد والحقول الداخلية الخاصة بالإدارة.</p>
+      </div>
+
+      <a class="secondary-btn back-btn" href="{% url 'inquiry:manage_records' %}">رجوع</a>
+    </header>
+
+    <section class="admin-card edit-record-card">
+      <form method="post" class="record-form clean-record-form">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="form-errors">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <section class="form-section">
+          <h2>بيانات ملف الإدارة</h2>
+
+          <div class="form-grid edit-form-grid">
+            {% for field in form %}
+              {% if field.name != "is_published" %}
+                <div class="form-field {% if field.name == 'full_name' or field.name == 'school_name' or field.name == 'admin_note' %}wide-field{% endif %}">
+                  <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                  {{ field }}
+                  {% if field.errors %}
+                    <small class="field-error">{{ field.errors|striptags }}</small>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="publish-section">
+          <label class="publish-toggle" for="{{ form.is_published.id_for_label }}">
+            {{ form.is_published }}
+            <span>إظهار النتيجة للمستفيد</span>
+          </label>
+        </section>
+
+        <div class="form-actions edit-actions">
+          <button type="submit">{{ submit_label }}</button>
+          <a class="secondary-btn" href="{% url 'inquiry:manage_records' %}">إلغاء</a>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

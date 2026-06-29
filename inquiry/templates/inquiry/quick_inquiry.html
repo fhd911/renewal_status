@@ -1,0 +1,189 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>استعلام إداري سريع</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'inquiry/style.css' %}">
+</head>
+<body>
+  <main class="admin-page quick-admin-page">
+    <header class="quick-admin-header">
+      <div>
+        <p class="agency">الإدارة العامة للتعليم بمنطقة عسير</p>
+        <h1>استعلام إداري سريع</h1>
+        <p class="subtitle">صفحة داخلية مبنية على أعمدة ملف الإدارة للرد المباشر على الاستفسارات.</p>
+      </div>
+
+      <div class="admin-actions">
+        <a class="secondary-btn" href="{% url 'inquiry:manage_records' %}">إدارة البيانات</a>
+        <a class="secondary-btn" href="{% url 'inquiry:inquiry_logs' %}">سجل الاستعلامات</a>
+      </div>
+    </header>
+
+    <section class="quick-admin-workspace columns-view">
+      <aside class="quick-search-panel">
+        <div class="panel-title">
+          <span>بحث داخلي</span>
+          <strong>استعلام الإدارة</strong>
+        </div>
+
+        <form method="post" class="quick-admin-form" autocomplete="off">
+          {% csrf_token %}
+
+          <label for="query">السجل المدني / الاسم / الرقم الوزاري / المدرسة</label>
+          <input id="query" name="query" value="{{ query }}" placeholder="أدخل بيانات البحث" autofocus>
+
+          <button type="submit">استعلام</button>
+        </form>
+
+        <div class="quick-admin-note">
+          تظهر هنا بيانات داخلية للإدارة فقط، ولا يظهر المبرر أو الملاحظة للمستفيد.
+        </div>
+      </aside>
+
+      <section class="quick-admin-result-area">
+        {% if not searched %}
+          <div class="quick-empty-state">
+            <span>جاهز للاستعلام</span>
+            <h2>ابحث بأي معلومة متاحة للرد على المستفيد.</h2>
+            <p>السجل المدني هو الأدق، ويمكن البحث بالاسم أو الرقم الوزاري أو المدرسة عند الحاجة.</p>
+          </div>
+        {% endif %}
+
+        {% if searched %}
+          {% if error %}
+            <article class="quick-admin-card no-result">
+              <div class="quick-status-head">
+                <span>نتيجة البحث</span>
+                <h2>لا توجد نتيجة</h2>
+              </div>
+
+              <p class="quick-admin-message">{{ error }}</p>
+
+              {% if no_result_reply %}
+                <section class="reply-panel">
+                  <div class="reply-panel-head">
+                    <strong>الرد المقترح للمستفيد</strong>
+                    <button type="button" class="copy-reply-btn" data-reply="{{ no_result_reply|escape }}">نسخ الرد</button>
+                  </div>
+                  <p>{{ no_result_reply }}</p>
+                </section>
+              {% endif %}
+            </article>
+          {% endif %}
+
+          {% if records %}
+            <div class="quick-result-stack">
+              {% for record in records %}
+                <article class="quick-admin-card status-{{ record.status_key|default:'info' }}">
+                  <div class="quick-status-head">
+                    <div>
+                      <span>حالة التجديد</span>
+                      <h2>{{ record.status_label }}</h2>
+                    </div>
+
+                    <div class="admin-publish-chip {% if record.is_published %}published{% else %}hidden{% endif %}">
+                      {% if record.is_published %}منشور للمستفيد{% else %}مخفي عن المستفيد{% endif %}
+                    </div>
+                  </div>
+
+                  <section class="admin-columns-card">
+                    <h3>بيانات ملف الإدارة</h3>
+
+                    <div class="admin-columns-grid">
+                      <div class="wide">
+                        <span>الاسم الرباعي</span>
+                        <strong>{{ record.full_name|default:"غير متوفر" }}</strong>
+                      </div>
+                      <div>
+                        <span>السجل المدني</span>
+                        <strong><bdi dir="ltr">{{ record.national_id }}</bdi></strong>
+                      </div>
+                      <div>
+                        <span>القطاع التعليمي</span>
+                        <strong>{{ record.sector|default:"غير متوفر" }}</strong>
+                      </div>
+                      <div>
+                        <span>الرقم الوزاري</span>
+                        <strong>{{ record.ministry_number|default:"غير متوفر" }}</strong>
+                      </div>
+                      <div class="wide">
+                        <span>اسم المدرسة</span>
+                        <strong>{{ record.school_name|default:"غير متوفر" }}</strong>
+                      </div>
+                      <div>
+                        <span>الجنس / الإدارة</span>
+                        <strong>{{ record.gender|default:"غير متوفر" }}</strong>
+                      </div>
+                      <div>
+                        <span>العمل الحالي</span>
+                        <strong>{{ record.current_work|default:record.category|default:"غير متوفر" }}</strong>
+                      </div>
+                      <div>
+                        <span>التجديد</span>
+                        <strong>{{ record.raw_status|default:record.status_label }}</strong>
+                      </div>
+                      {% if record.status_key == "not_renewed" and record.non_renewal_reason %}
+                        <div class="internal-only">
+                          <span>المبرر في حال عدم التجديد</span>
+                          <strong>{{ record.non_renewal_reason }}</strong>
+                        </div>
+                      {% endif %}
+
+                      {% if record.admin_note %}
+                        <div class="wide internal-only">
+                          <span>ملاحظة</span>
+                          <strong>{{ record.admin_note }}</strong>
+                        </div>
+                      {% endif %}
+                    </div>
+                  </section>
+
+                  <section class="reply-panel">
+                    <div class="reply-panel-head">
+                      <strong>الرد المقترح للمستفيد</strong>
+                      <button type="button" class="copy-reply-btn" data-reply="{{ record.quick_reply|escape }}">نسخ الرد</button>
+                    </div>
+                    <p>{{ record.quick_reply }}</p>
+                  </section>
+                </article>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endif %}
+      </section>
+    </section>
+  </main>
+
+  <script>
+    document.querySelectorAll(".copy-reply-btn").forEach(function(button){
+      button.addEventListener("click", async function(){
+        const reply = button.getAttribute("data-reply") || "";
+        try {
+          await navigator.clipboard.writeText(reply);
+          const oldText = button.textContent;
+          button.textContent = "تم النسخ";
+          button.classList.add("copied");
+          setTimeout(function(){
+            button.textContent = oldText;
+            button.classList.remove("copied");
+          }, 1400);
+        } catch (error) {
+          const textarea = document.createElement("textarea");
+          textarea.value = reply;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textarea);
+          button.textContent = "تم النسخ";
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>إتاحة الاستعلام</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'inquiry/style.css' %}">
+</head>
+<body>
+  <main class="admin-page settings-page">
+    <header class="admin-header">
+      <div>
+        <p class="agency">الإدارة العامة للتعليم بمنطقة عسير</p>
+        <h1>إتاحة الاستعلام</h1>
+        <p class="subtitle">فتح وإغلاق صفحة الاستعلام للمستفيدين أثناء الإضافة أو التعديل أو خلال فترة محددة.</p>
+      </div>
+
+      <div class="admin-actions">
+        <a class="secondary-btn" href="{% url 'inquiry:manage_records' %}">إدارة البيانات</a>
+        <a class="secondary-btn" href="{% url 'inquiry:home' %}">صفحة الاستعلام</a>
+      </div>
+    </header>
+
+    {% if messages %}
+      <section class="admin-messages">
+        {% for message in messages %}
+          <div class="message-item {% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</div>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    <section class="settings-status-card {% if is_available %}open{% else %}closed{% endif %}">
+      <span>الحالة الحالية</span>
+      <strong>{% if is_available %}الاستعلام متاح للمستفيدين{% else %}الاستعلام مغلق للمستفيدين{% endif %}</strong>
+      <p>{% if is_available %}يمكن للمستفيدين استخدام صفحة الاستعلام الآن.{% else %}لن يتمكن المستفيدون من استخدام صفحة الاستعلام حاليًا.{% endif %}</p>
+    </section>
+
+    <section class="admin-card settings-card">
+      <form method="post" class="record-form settings-form">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="form-errors">
+            {{ form.non_field_errors }}
+          </div>
+        {% endif %}
+
+        <div class="setting-toggle-row">
+          <div>
+            <h2>حالة الإتاحة</h2>
+            <p>عند إغلاق الاستعلام لن يتمكن المستفيد من البحث، بينما تبقى صفحات الإدارة والاستيراد والتعديل متاحة.</p>
+          </div>
+          <label class="switch-field">
+            {{ form.is_enabled }}
+            <span>إتاحة الاستعلام</span>
+          </label>
+        </div>
+
+        <div class="form-grid two">
+          <div class="field-block">
+            <label for="{{ form.start_at.id_for_label }}">بداية الإتاحة</label>
+            {{ form.start_at }}
+            {% if form.start_at.errors %}<div class="field-error">{{ form.start_at.errors }}</div>{% endif %}
+            <small>اتركه فارغًا إذا كان الفتح مباشرًا.</small>
+          </div>
+
+          <div class="field-block">
+            <label for="{{ form.end_at.id_for_label }}">نهاية الإتاحة</label>
+            {{ form.end_at }}
+            {% if form.end_at.errors %}<div class="field-error">{{ form.end_at.errors }}</div>{% endif %}
+            <small>اتركه فارغًا إذا لم تكن هناك نهاية محددة.</small>
+          </div>
+        </div>
+
+        <div class="field-block">
+          <label for="{{ form.closed_message.id_for_label }}">رسالة الإغلاق</label>
+          {{ form.closed_message }}
+          {% if form.closed_message.errors %}<div class="field-error">{{ form.closed_message.errors }}</div>{% endif %}
+        </div>
+
+        <div class="settings-help">
+          <strong>الاستخدام المقترح:</strong>
+          أغلق الاستعلام أثناء مراجعة البيانات أو الاستيراد، ثم افتحه عند الاعتماد النهائي، أو حدد بداية ونهاية الإتاحة تلقائيًا.
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="primary-btn">حفظ إعدادات الإتاحة</button>
+          <a class="secondary-btn" href="{% url 'inquiry:manage_records' %}">رجوع</a>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

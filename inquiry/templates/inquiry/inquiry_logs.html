@@ -1,0 +1,115 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>سجل الاستعلامات</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'inquiry/style.css' %}">
+</head>
+<body>
+  <main class="admin-page">
+    <header class="admin-header">
+      <div>
+        <p class="agency">الإدارة العامة للتعليم بمنطقة عسير</p>
+        <h1>سجل الاستعلامات</h1>
+        <p class="subtitle">متابعة السجلات المدنية التي تم الاستعلام عنها ونتيجة كل محاولة.</p>
+      </div>
+
+      <div class="admin-actions">
+        <a class="secondary-btn" href="{% url 'inquiry:manage_records' %}">إدارة البيانات</a>
+        <a class="secondary-btn" href="{% url 'inquiry:home' %}">صفحة الاستعلام</a>
+      </div>
+    </header>
+
+    <section class="stats-grid log-stats">
+      <div class="stat-card"><span>إجمالي الاستعلامات</span><strong>{{ total_logs }}</strong></div>
+      <div class="stat-card success"><span>نتائج موجودة</span><strong>{{ found_logs }}</strong></div>
+      <div class="stat-card danger"><span>نتائج غير موجودة</span><strong>{{ not_found_logs }}</strong></div>
+    </section>
+
+    <section class="admin-card">
+      <form method="get" class="admin-filter logs-filter">
+        <input name="q" value="{{ query }}" placeholder="بحث برقم الاستعلام أو السجل أو الاسم أو IP">
+        <select name="found">
+          <option value="">جميع المحاولات</option>
+          <option value="yes" {% if found == "yes" %}selected{% endif %}>وجد نتيجة</option>
+          <option value="no" {% if found == "no" %}selected{% endif %}>لم يجد نتيجة</option>
+        </select>
+        <button type="submit">بحث</button>
+        {% if query or found %}
+          <a class="clear-filter" href="{% url 'inquiry:inquiry_logs' %}">مسح</a>
+        {% endif %}
+      </form>
+
+      <div class="table-wrap">
+        <table class="admin-table logs-table">
+          <thead>
+            <tr>
+              <th>رقم الاستعلام</th>
+              <th>وقت الاستعلام</th>
+              <th>السجل المدني</th>
+              <th>آخر 4</th>
+              <th>الاسم وقت الاستعلام</th>
+              <th>الفئة</th>
+              <th>المدرسة</th>
+              <th>الحالة</th>
+              <th>النتيجة</th>
+              <th>IP</th>
+              <th>المتصفح</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in page_obj %}
+              <tr>
+                <td class="ltr">{{ log.reference_number|default:"-" }}</td>
+                <td>{{ log.created_at|date:"Y-m-d H:i" }}</td>
+                <td class="ltr">{{ log.national_id }}</td>
+                <td class="ltr">{{ log.mobile_last4|default:"-" }}</td>
+                <td>{{ log.result_name|default:"-" }}</td>
+                <td>{{ log.result_category|default:"-" }}</td>
+                <td>{{ log.result_school|default:"-" }}</td>
+                <td>
+                  {% if log.result_status_label %}
+                    <span class="mini-status">{{ log.result_status_label }}</span>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td>
+                  {% if log.found %}
+                    <span class="mini-status status-renewed">وجد نتيجة</span>
+                  {% else %}
+                    <span class="mini-status status-not_renewed">لم يجد</span>
+                  {% endif %}
+                </td>
+                <td class="ltr">{{ log.ip_address|default:"-" }}</td>
+                <td class="ua-cell">{{ log.user_agent|default:"-" }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="11" class="empty-row">لا توجد سجلات استعلام مطابقة.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="pagination">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}&found={{ found }}">السابق</a>
+          {% endif %}
+          <span>صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&q={{ query }}&found={{ found }}">التالي</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

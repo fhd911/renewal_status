@@ -1,0 +1,138 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>استعلام شاغلي التشكيلات المدرسية</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'inquiry/style.css' %}">
+</head>
+<body>
+  <main class="page {% if searched and records %}result-only-page{% endif %}">
+    {% if not searched or error %}
+      <section class="service-card">
+        <header class="service-header">
+          <div class="official-mark" aria-hidden="true"><span></span></div>
+
+          <div class="service-title">
+            <p class="agency">الإدارة العامة للتعليم بمنطقة عسير</p>
+            <h1>استعلام شاغلي التشكيلات المدرسية</h1>
+          </div>
+        </header>
+
+        {% if inquiry_available %}
+        <form method="post" class="inquiry-form" autocomplete="off">
+          {% csrf_token %}
+
+          <div class="input-group">
+            <input id="national_id" name="national_id" value="{{ national_id }}" inputmode="numeric" maxlength="10" placeholder="أدخل السجل المدني" autofocus>
+          </div>
+          <button type="submit" class="search-button">استعلام</button>
+        </form>
+        {% else %}
+        <div class="service-closed-box single-line">
+          <span>الاستعلام غير متاح حاليًا</span>
+        </div>
+        {% endif %}
+</section>
+    {% endif %}
+    {% if searched %}
+
+      {% if records %}
+        <section class="records-list">
+          {% for record in records %}
+            <article class="result-document-card status-{{ record.status_key|default:'info' }}">
+              <header class="document-header">
+                <div class="document-title">
+                  <p class="agency">الإدارة العامة للتعليم بمنطقة عسير</p>
+                  <h1>نتيجة الاستعلام</h1>
+                </div>
+
+                <a class="secondary-btn new-query-btn" href="{% url 'inquiry:home' %}">استعلام جديد</a>
+              </header>
+
+              <div class="document-meta">
+                {% if inquiry_reference %}
+                  <div class="meta-item">
+                    <span>رقم الاستعلام</span>
+                    <strong><bdi dir="ltr">{{ inquiry_reference }}</bdi></strong>
+                  </div>
+                {% endif %}
+                <div class="meta-item status-meta">
+                  <span>الحالة</span>
+                  <strong>{{ record.status_label }}</strong>
+                </div>
+              </div>
+
+              {% if record.status_key == "renewed" %}
+                <section class="decision-box renewed-box document-decision">
+                  <h2>مبارك لكم التجديد</h2>
+                  <p>نبارك لكم تجديد التكليف، سائلين الله لكم التوفيق والسداد.</p>
+                </section>
+              {% else %}
+                <section class="decision-box document-decision">
+                  <h2>{{ record.status_label }}</h2>
+                  <p>{{ record.status_message }}</p>
+                </section>
+              {% endif %}
+
+              <section class="info-section document-info">
+                <h3>بيانات المستفيد</h3>
+
+                <div class="benefit-info">
+                  <div class="benefit-item full">
+                    <span>الاسم</span>
+                    <strong>{{ record.full_name|default:"غير متوفر" }}</strong>
+                  </div>
+
+                  <div class="benefit-pair">
+                    <div class="benefit-item">
+                      <span>الفئة</span>
+                      <strong>{{ record.category|default:"غير متوفر" }}</strong>
+                    </div>
+                    <div class="benefit-item">
+                      <span>القطاع التعليمي</span>
+                      <strong>{{ record.sector|default:"غير متوفر" }}</strong>
+                    </div>
+                  </div>
+
+                  <div class="benefit-item full">
+                    <span>المدرسة</span>
+                    <strong>{{ record.school_name|default:"غير متوفر" }}</strong>
+                  </div>
+
+                  <div class="benefit-item full status-line">
+                    <span>الحالة في البيانات</span>
+                    <strong>{{ record.raw_status|default:record.status_label }}</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section class="decision-details">
+                <h3>تنبيه بشأن القرار الرسمي</h3>
+
+                <div class="decision-note official-notice">
+                  {% if record.public_note %}
+                    {{ record.public_note }}
+                  {% else %}
+                    هذه الخدمة مخصصة للاستعلام عن حالة التكليف فقط، ويُعد القرار الرسمي هو المرجع النظامي، وسيتم تزويدكم به عبر القنوات الرسمية من جهة الاختصاص.
+                  {% endif %}
+                </div>
+              </section>
+            </article>
+          {% endfor %}
+        </section>
+      {% endif %}
+    {% endif %}
+
+    {% if not searched or error %}
+      <footer class="footer">
+        هذه الخدمة مخصصة للاستعلام فقط، ولا تُعد بديلًا عن القرارات أو الخطابات الرسمية المعتمدة.
+      </footer>
+    {% endif %}
+  </main>
+</body>
+</html>

@@ -1,0 +1,295 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>مركز الاستيراد والمراجعة</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'inquiry/style.css' %}">
+</head>
+<body>
+  <main class="admin-page import-review-page">
+    <header class="admin-header import-review-header">
+      <div>
+        <p class="agency">الإدارة العامة للتعليم بمنطقة عسير</p>
+        <h1>مركز الاستيراد والمراجعة</h1>
+        <p class="subtitle">رفع ملف البيانات، فحص جودة الأعمدة والسجلات، ثم اعتماد النشر بعد المراجعة.</p>
+      </div>
+
+      <div class="admin-actions">
+        <a class="secondary-btn" href="{% url 'inquiry:manage_records' %}">رجوع للإدارة</a>
+        <a class="secondary-btn" href="{% url 'inquiry:inquiry_logs' %}">سجل الاستعلامات</a>
+      </div>
+    </header>
+
+    {% if messages %}
+      <section class="admin-messages">
+        {% for message in messages %}
+          <div class="message-item {% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</div>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    <section class="admin-card import-card review-upload-card">
+      <form method="post" enctype="multipart/form-data" class="import-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="preview">
+
+        <div class="import-layout">
+          <div class="upload-box">
+            <label for="{{ form.file.id_for_label }}">ملف Excel</label>
+            {{ form.file }}
+            {% if form.file.errors %}
+              <small class="field-error">{{ form.file.errors|striptags }}</small>
+            {% endif %}
+            <p>الأعمدة الأساسية: السجل المدني، الاسم، الحالة. والأعمدة المساندة: المدرسة، القطاع، الفئة.</p>
+          </div>
+
+          <div class="mode-box">
+            <label>طريقة الاستيراد</label>
+            {{ form.mode }}
+            {% if form.mode.errors %}
+              <small class="field-error">{{ form.mode.errors|striptags }}</small>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit">فحص الملف ومعاينته</button>
+        </div>
+      </form>
+    </section>
+
+    {% if preview %}
+      <section class="quality-card quality-{{ preview.quality_level }}">
+        <div>
+          <span>نتيجة فحص الملف</span>
+          <strong>{{ preview.quality_label }}</strong>
+          <p>{{ preview.quality_message }}</p>
+        </div>
+
+        <div class="quality-badge">
+          {% if preview.quality_level == "success" %}
+            جاهز
+          {% elif preview.quality_level == "warning" %}
+            ملاحظات
+          {% else %}
+            مراجعة
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="stats-grid import-stats review-stats">
+        <div class="stat-card"><span>إجمالي الصفوف</span><strong>{{ preview.total_rows }}</strong></div>
+        <div class="stat-card success"><span>سجلات صحيحة</span><strong>{{ preview.valid_count }}</strong></div>
+        <div class="stat-card danger"><span>سجلات متجاوزة</span><strong>{{ preview.invalid_count }}</strong></div>
+        <div class="stat-card warning"><span>ملاحظات</span><strong>{{ preview.warning_count }}</strong></div>
+        <div class="stat-card warning"><span>تكرار داخل الملف</span><strong>{{ preview.duplicate_count }}</strong></div>
+        <div class="stat-card warning"><span>فئة غير مقروءة</span><strong>{{ preview.issue_counts.missing_category|default:0 }}</strong></div>
+      </section>
+
+      {% if preview.missing_headers %}
+        <section class="message-card alert review-alert">
+          <strong>أعمدة أساسية غير مقروءة</strong>
+          <span>لم يتم التعرف على الأعمدة التالية: {{ preview.missing_header_labels|join:"، " }}. يرجى تعديل عناوين الأعمدة ثم رفع الملف مرة أخرى.</span>
+        </section>
+      {% endif %}
+
+      <section class="review-grid">
+        <section class="admin-card review-panel">
+          <div class="section-head compact">
+            <div>
+              <h2>توزيع الفئات</h2>
+              <p>يساعدك على اكتشاف مشكلة الفئة قبل الاعتماد.</p>
+            </div>
+          </div>
+
+          <div class="mini-review-list">
+            {% for item in preview.category_summary %}
+              <div class="mini-review-item">
+                <span>{{ item.label }}</span>
+                <strong>{{ item.count }}</strong>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="admin-card review-panel">
+          <div class="section-head compact">
+            <div>
+              <h2>توزيع الحالات</h2>
+              <p>قراءة سريعة لحالات التجديد داخل الملف.</p>
+            </div>
+          </div>
+
+          <div class="mini-review-list">
+            {% for item in preview.status_summary %}
+              <div class="mini-review-item">
+                <span>{{ item.label }}</span>
+                <strong>{{ item.count }}</strong>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      </section>
+
+      <section class="admin-card review-panel">
+        <div class="section-head compact">
+          <div>
+            <h2>فحص الحقول المهمة</h2>
+            <p>الملاحظات لا تمنع الاعتماد دائمًا، لكنها تساعد على تحسين جودة البيانات قبل النشر.</p>
+          </div>
+        </div>
+
+        <div class="issue-strip">
+          <div><span>مدرسة غير متوفرة</span><strong>{{ preview.issue_counts.missing_school|default:0 }}</strong></div>
+          <div><span>قطاع غير متوفر</span><strong>{{ preview.issue_counts.missing_sector|default:0 }}</strong></div>
+          <div><span>حالة غير مصنفة</span><strong>{{ preview.issue_counts.unknown_status|default:0 }}</strong></div>
+          <div><span>سجل مدني مفقود</span><strong>{{ preview.issue_counts.missing_national_id|default:0 }}</strong></div>
+          <div><span>اسم مفقود</span><strong>{{ preview.issue_counts.missing_name|default:0 }}</strong></div>
+          <div><span>حالة مفقودة</span><strong>{{ preview.issue_counts.missing_status|default:0 }}</strong></div>
+        </div>
+      </section>
+
+      {% if preview.issue_rows %}
+        <section class="admin-card review-panel">
+          <div class="section-head compact">
+            <div>
+              <h2>السجلات التي تحتاج مراجعة</h2>
+              <p>أول السجلات التي تحتوي على أخطاء أو ملاحظات قبل الاعتماد.</p>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="admin-table review-table">
+              <thead>
+                <tr>
+                  <th>الصف</th>
+                  <th>السجل المدني</th>
+                  <th>الاسم</th>
+                  <th>الفئة</th>
+                  <th>المدرسة</th>
+                  <th>الحالة</th>
+                  <th>الملاحظات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in preview.issue_rows %}
+                  <tr>
+                    <td>{{ row.row_number }}</td>
+                    <td class="ltr">{{ row.national_id|default:"-" }}</td>
+                    <td>{{ row.full_name|default:"-" }}</td>
+                    <td>{{ row.category|default:"-" }}</td>
+                    <td>{{ row.school_name|default:"-" }}</td>
+                    <td><span class="mini-status status-{{ row.status_key }}">{{ row.status_label }}</span></td>
+                    <td>
+                      {% if row.errors %}
+                        <span class="error-text">{{ row.errors|join:"، " }}</span>
+                      {% endif %}
+                      {% if row.warnings %}
+                        <span class="warning-inline">{{ row.warnings|join:"، " }}</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      {% endif %}
+
+      <section class="admin-card review-panel">
+        <div class="section-head compact">
+          <div>
+            <h2>معاينة أول السجلات</h2>
+            <p>راجع عينة من البيانات كما ستظهر بعد القراءة من ملف Excel.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="admin-table review-table">
+            <thead>
+              <tr>
+                <th>الصف</th>
+                <th>السجل المدني</th>
+                <th>الاسم</th>
+                <th>الفئة</th>
+                <th>المدرسة</th>
+                <th>القطاع</th>
+                <th>الحالة</th>
+                <th>المراجعة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in preview.preview_rows %}
+                <tr>
+                  <td>{{ row.row_number }}</td>
+                  <td class="ltr">{{ row.national_id|default:"-" }}</td>
+                  <td>{{ row.full_name|default:"-" }}</td>
+                  <td>{{ row.category|default:"-" }}</td>
+                  <td>{{ row.school_name|default:"-" }}</td>
+                  <td>{{ row.sector|default:"-" }}</td>
+                  <td><span class="mini-status status-{{ row.status_key }}">{{ row.status_label }}</span></td>
+                  <td>
+                    {% if row.errors %}
+                      <span class="error-text">{{ row.errors|join:"، " }}</span>
+                    {% elif row.warnings %}
+                      <span class="warning-inline">{{ row.warnings|join:"، " }}</span>
+                    {% else %}
+                      <span class="ok-text">سليم</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="8" class="empty-row">لا توجد بيانات للمعاينة.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="admin-card confirm-import-card review-confirm-card">
+        <div class="section-head compact">
+          <div>
+            <h2>اعتماد الاستيراد</h2>
+            <p>
+              البيانات الحالية: <strong>{{ current_total }}</strong> سجل.
+              الملف الجديد يحتوي على <strong>{{ preview.valid_count }}</strong> سجل صحيح.
+              {% if mode == "replace" %}
+                سيتم استبدال البيانات الحالية بالكامل.
+              {% else %}
+                سيتم تحديث السجلات المطابقة وإضافة السجلات الجديدة.
+              {% endif %}
+            </p>
+          </div>
+        </div>
+
+        <form method="post" class="confirm-panel">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="confirm">
+
+          <label class="confirm-check">
+            <input type="checkbox" name="confirm_import" value="yes" {% if not preview.can_confirm %}disabled{% endif %}>
+            <span>
+              أقر بأن الملف المرفوع هو الملف المعتمد، وأوافق على تنفيذ عملية الاستيراد.
+              {% if not preview.can_confirm %}
+                <b>لا يمكن الاعتماد قبل توفر الأعمدة الأساسية ووجود سجلات صحيحة.</b>
+              {% endif %}
+            </span>
+          </label>
+
+          <div class="form-actions">
+            <button type="submit" {% if not preview.can_confirm %}disabled{% endif %}>اعتماد الاستيراد</button>
+            <button type="submit" name="action" value="cancel" class="outline-danger">إلغاء</button>
+          </div>
+        </form>
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>
